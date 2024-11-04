@@ -11,7 +11,7 @@ app.use(express.json());
 app.use(cors());
 app.use('/', router);
 
-const port = Number(process.env.PORT) || 3000;
+const port = Number(process.env.PORT) || 3001;
 app.listen(port, () => {
     console.log(`--- listening on port ${port}`);
 });
