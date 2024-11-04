@@ -1,0 +1,11 @@
+{
+    "watch": [
+        "./src",
+        "./.env",
+        "./package.json",
+        "./tsconfig.json"
+    ],
+    "ext": "*",
+    "ignore": [],
+    "exec": "npx tsx ./src/index.ts"
+}

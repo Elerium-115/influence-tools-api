@@ -1,0 +1,31 @@
+{
+    "name": "influence-tools-api",
+    "version": "0.0.1",
+    "description": "",
+    "main": "index.js",
+    "type": "module",
+    "scripts": {
+        "dev": "npx nodemon",
+        "build": "rimraf ./dist && tsc",
+        "start": "node dist/index.js",
+        "test": "echo \"Error: no test specified\" && exit 1"
+    },
+    "author": "@elerium115",
+    "license": "ISC",
+    "devDependencies": {
+        "@types/cors": "^2.8.17",
+        "@types/express": "^5.0.0",
+        "@types/node": "^22.8.7",
+        "nodemon": "^3.1.7",
+        "rimraf": "^6.0.1",
+        "tsx": "^4.19.2",
+        "typescript": "^5.6.3"
+    },
+    "dependencies": {
+        "cors": "^2.8.5",
+        "dotenv": "^16.4.5",
+        "express": "^4.21.1",
+        "jose": "^5.9.6",
+        "starknetkit": "^2.3.3"
+    }
+}
