@@ -24,7 +24,6 @@ class RoutingService {
         walletAddress: string,
         chainId: ChainId,
     ): Promise<GenerateMessageLoginResponse> {
-        console.log(`--- [generateMessageLogin] args:`, arguments); //// TEST
         return await starknetService.generateMessageLogin(walletAddress, chainId);
     }
 
@@ -33,7 +32,6 @@ class RoutingService {
         signature: starknet.Signature,
         token: string,
     ): Promise<VerifySignatureResponse> {
-        console.log(`--- [verifySignature] args:`, arguments); //// TEST
         return await starknetService.verifySignature(typedData, signature, token);
     }
 
@@ -41,7 +39,6 @@ class RoutingService {
         data: any,
         token: string,
     ): Promise<AuthedResponse> {
-        console.log(`--- [authTest] args:`, arguments); //// TEST
         return await starknetService.authTest(data, token);
     }
 }

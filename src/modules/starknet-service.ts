@@ -17,17 +17,20 @@ interface JWTPayloadForAuth {
 }
 
 interface GenerateMessageLoginResponse {
+    status: number,
     typedData: starknet.TypedData,
     token: string,
 }
 
 interface VerifySignatureResponse {
+    status: number,
     success: boolean,
     token?: string, // if "success" TRUE
     error?: string, // if "success" FALSE
 }
 
 interface AuthedResponse {
+    status: number,
     success: boolean,
     data?: any, // if "success" TRUE
     error?: string, // if "success" FALSE
@@ -118,6 +121,7 @@ class StarknetService {
         walletAddress: string,
         chainId: ChainId,
     ): Promise<GenerateMessageLoginResponse> {
+        // console.log(`--- [generateMessageLogin] args:`, arguments); //// TEST
         // Generate secure random nonce
         const nonce = crypto.randomBytes(8).toString('hex');
         // Generate JWT token that includes walletAddress, chainId, and nonce
@@ -129,7 +133,11 @@ class StarknetService {
             chainId,
             nonce,
         );
-        return {typedData, token};
+        return {
+            status: 200,
+            typedData,
+            token,
+        };
     }
 
     public async verifySignature(
@@ -137,6 +145,7 @@ class StarknetService {
         signature: starknet.Signature,
         token: string,
     ): Promise<VerifySignatureResponse> {
+        // console.log(`--- [verifySignature] args:`, arguments); //// TEST
         try {
             // Verify JWT token and extract its payload
             const {walletAddress, chainId, nonce} = await this.verifyJwtToken(token) as any as JWTPayloadForAuth;
@@ -145,8 +154,11 @@ class StarknetService {
             const isMatchingChainId = typedData.domain.chainId === chainId;
             const isMatchingNonce = (typedData.message as any).nonce === nonce;
             if (!isMatchingAddress || !isMatchingChainId || !isMatchingNonce) {
-                return {success: false, error: 'Invalid wallet address, chain ID, or nonce.'};
-                // return res.status(400).json({success: false, error: 'Invalid wallet address, chain ID, or nonce.'}); //// TO USE @ API
+                return {
+                    status: 400,
+                    success: false,
+                    error: 'Invalid wallet address, chain ID, or nonce.',
+                };
             }
             /**
              * Verify the signature.
@@ -160,15 +172,24 @@ class StarknetService {
             if (isValidSignature) {
                 // Generate long-term JWT auth token that includes walletAddress, chainId
                 const token = await this.generateJwtToken({walletAddress, chainId}, '1 week');
-                return {success: true, token};
-                // res.json({success: true}); //// TO USE @ API
+                return {
+                    status: 200,
+                    success: true,
+                    token,
+                };
             } else {
-                return {success: false, error: 'Signature verification failed.'};
-                // res.status(400).json({success: false, error: 'Signature verification failed.'}); //// TO USE @ API
+                return {
+                    status: 400,
+                    success: false,
+                    error: 'Signature verification failed.',
+                };
             }
         } catch (error: any) {
-            return {success: false, error: error.message};
-            // res.status(500).json({success: false, error: error.message}); //// TO USE @ API
+            return {
+                status: 500,
+                success: false,
+                error: error.message,
+            };
         }
     }
 
@@ -176,29 +197,31 @@ class StarknetService {
         data: any,
         token: string,
     ): Promise<AuthedResponse> {
-        //// TO USE @ API
-        /*
-        const {data} = req.body;
-        const authHeader = req.headers['authorization'];
-        if (!authHeader) {
-            return res.status(401).json({success: false, error: 'Authorization header missing'});
-        }
-        const token = authHeader.split(' ')[1];
-        */
+        // console.log(`--- [authTest] args:`, arguments); //// TEST
         if (!token) {
-            // return res.status(401).json({success: false, error: 'Token missing'}); //// TO USE @ API
-            return {success: false, error: 'Token missing'};
+            return {
+                status: 401,
+                success: false,
+                error: 'Token missing',
+            };
         }
         try {
             // Verify JWT token and extract its payload
             const {walletAddress, chainId} = await this.verifyJwtToken(token) as any as JWTPayloadForAuth;
-            console.log(`--- [authTest] proceed for authed user:`, {walletAddress, chainId}); //// TEST
-            //// ...
+            // console.log(`--- [authTest] proceed for authed user:`, {walletAddress, chainId}); //// TEST
+            //// TO DO: ...
         } catch (error: any) {
-            // return res.status(401).json({success: false, error: 'Token invalid or expired'}); //// TO USE @ API
-            return {success: false, error: 'Token invalid or expired'};
+            return {
+                status: 401,
+                success: false,
+                error: 'Token invalid or expired',
+            };
         }
-        return {success: true, data: {testResponse: 'Test Response'}}; //// TEST
+        return {
+            status: 200,
+            success: true,
+            data: {testResponse: 'Test Response'},
+        };
     }
 }
 

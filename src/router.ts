@@ -24,7 +24,7 @@ router.post(
         console.log(`--- [router] GET /generate-message-login`); //// TEST
         const {walletAddress, chainId} = req.body;
         const responseData = await routingService.generateMessageLogin(walletAddress, chainId);
-        res.json(responseData);
+        res.status(responseData.status).json(responseData);
     }
 );
 
@@ -37,7 +37,7 @@ router.post(
         console.log(`--- [router] GET /verify-signature`); //// TEST
         const {typedData, signature, token} = req.body;
         const responseData = await routingService.verifySignature(typedData, signature, token);
-        res.json(responseData);
+        res.status(responseData.status).json(responseData);
     }
 );
 
@@ -51,11 +51,16 @@ router.post(
         const {data} = req.body;
         const authHeader = req.headers['authorization'];
         if (!authHeader) {
-            res.status(401).json({success: false, error: 'Authorization header missing'});
+            const responseData = {
+                status: 401,
+                success: false,
+                error: 'Authorization header missing',
+            };
+            res.status(responseData.status).json(responseData);
             return;
         }
         const token = authHeader.split(' ')[1];
         const responseData = await routingService.authTest(data, token);
-        res.json(responseData);
+        res.status(responseData.status).json(responseData);
     }
 );
