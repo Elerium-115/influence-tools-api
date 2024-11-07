@@ -21,7 +21,7 @@ router.get(
 router.post(
     '/generate-message-login',
     async (req: Request, res: Response): Promise<void> => {
-        console.log(`--- [router] GET /generate-message-login`); //// TEST
+        console.log(`--- [router] POST /generate-message-login`); //// TEST
         const {walletAddress, chainId} = req.body;
         const responseData = await routingService.generateMessageLogin(walletAddress, chainId);
         res.status(responseData.status).json(responseData);
@@ -34,7 +34,7 @@ router.post(
 router.post(
     '/verify-signature',
     async (req: Request, res: Response): Promise<void> => {
-        console.log(`--- [router] GET /verify-signature`); //// TEST
+        console.log(`--- [router] POST /verify-signature`); //// TEST
         const {typedData, signature, token} = req.body;
         const responseData = await routingService.verifySignature(typedData, signature, token);
         res.status(responseData.status).json(responseData);
@@ -47,7 +47,7 @@ router.post(
 router.post(
     '/auth-test',
     async (req: Request, res: Response): Promise<void> => {
-        console.log(`--- [router] GET /auth-test`); //// TEST
+        console.log(`--- [router] POST /auth-test`); //// TEST
         const {data} = req.body;
         const authHeader = req.headers['authorization'];
         if (!authHeader) {

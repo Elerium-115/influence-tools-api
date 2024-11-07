@@ -18,8 +18,10 @@ interface JWTPayloadForAuth {
 
 interface GenerateMessageLoginResponse {
     status: number,
-    typedData: starknet.TypedData,
-    token: string,
+    success: boolean,
+    typedData?: starknet.TypedData, // if "success" TRUE
+    token?: string, // if "success" TRUE
+    error?: string, // if "success" FALSE
 }
 
 interface VerifySignatureResponse {
@@ -122,6 +124,13 @@ class StarknetService {
         chainId: ChainId,
     ): Promise<GenerateMessageLoginResponse> {
         // console.log(`--- [generateMessageLogin] args:`, arguments); //// TEST
+        if (!walletAddress || !chainId) {
+            return {
+                status: 400,
+                success: false,
+                error: 'Invalid wallet address or chain ID.',
+            };
+        }
         // Generate secure random nonce
         const nonce = crypto.randomBytes(8).toString('hex');
         // Generate JWT token that includes walletAddress, chainId, and nonce
@@ -135,6 +144,7 @@ class StarknetService {
         );
         return {
             status: 200,
+            success: true,
             typedData,
             token,
         };
