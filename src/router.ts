@@ -1,16 +1,26 @@
-import express, {Request, Response} from 'express';
+import express, {
+    NextFunction,
+    Request,
+    Response,
+} from 'express';
 import {testData} from './modules/test.js';
+import {authService} from './modules/auth-service.js';
 import {routingService} from './modules/routing-service.js';
 
 export const router = express.Router();
+
+function logRequestMiddleware(req: Request, res: Response, next: NextFunction): void {
+    console.log(`--- [router] ${req.method} ${req.path}`); //// TEST
+    next();
+}
 
 /**
  * @route GET /
  */
 router.get(
     '/',
+    logRequestMiddleware,
     (req: Request, res: Response): void => {
-        console.log(`--- [router] GET /`); //// TEST
         res.json(testData);
     }
 );
@@ -20,8 +30,8 @@ router.get(
  */
 router.post(
     '/generate-message-login',
+    logRequestMiddleware,
     async (req: Request, res: Response): Promise<void> => {
-        console.log(`--- [router] POST /generate-message-login`); //// TEST
         const {walletAddress, chainId} = req.body;
         const responseData = await routingService.generateMessageLogin(walletAddress, chainId);
         res.status(responseData.status).json(responseData);
@@ -33,8 +43,8 @@ router.post(
  */
 router.post(
     '/verify-signature',
+    logRequestMiddleware,
     async (req: Request, res: Response): Promise<void> => {
-        console.log(`--- [router] POST /verify-signature`); //// TEST
         const {typedData, signature, token} = req.body;
         const responseData = await routingService.verifySignature(typedData, signature, token);
         res.status(responseData.status).json(responseData);
@@ -46,21 +56,17 @@ router.post(
  */
 router.post(
     '/auth-test',
+    logRequestMiddleware,
+    authService.verifyJwtTokenMiddleware, // protected endpoint
     async (req: Request, res: Response): Promise<void> => {
-        console.log(`--- [router] POST /auth-test`); //// TEST
-        const {data} = req.body;
-        const authHeader = req.headers['authorization'];
-        if (!authHeader) {
-            const responseData = {
-                status: 401,
-                success: false,
-                error: 'Authorization header missing',
-            };
-            res.status(responseData.status).json(responseData);
-            return;
-        }
-        const token = authHeader.split(' ')[1];
-        const responseData = await routingService.authTest(data, token);
+        const responseData = {
+            status: 200,
+            success: true,
+            data: {
+                walletAddress: req.walletAddress,
+                chainId: req.chainId,
+                testResponse: 'Test response for valid JWT token'},
+        };
         res.status(responseData.status).json(responseData);
     }
 );

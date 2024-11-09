@@ -1,20 +1,8 @@
-import dotenv from 'dotenv';
 import * as crypto from 'crypto';
-import * as jose from 'jose';
 import * as starknet from 'starknet';
-
-dotenv.config();
-
-const JWT_SECRET = process.env.JWT_SECRET;
-const JWT_ALGO = 'HS256';
+import {authService, JWTPayloadForAuth} from './auth-service.js';
 
 type ChainId = 'SN_MAIN'|'SN_SEPOLIA';
-
-interface JWTPayloadForAuth {
-    walletAddress: string,
-    chainId: string,
-    nonce?: string,
-}
 
 interface GenerateMessageLoginResponse {
     status: number,
@@ -28,13 +16,6 @@ interface VerifySignatureResponse {
     status: number,
     success: boolean,
     token?: string, // if "success" TRUE
-    error?: string, // if "success" FALSE
-}
-
-interface AuthedResponse {
-    status: number,
-    success: boolean,
-    data?: any, // if "success" TRUE
     error?: string, // if "success" FALSE
 }
 
@@ -96,29 +77,6 @@ class StarknetService {
         };
     }
 
-    private async generateJwtToken(
-        payload: jose.JWTPayload,
-        expiration: string,
-    ): Promise<string> {
-        // Sign the JWT with the secret key and expiration time
-        const secret = new TextEncoder().encode(JWT_SECRET);
-        return await new jose.SignJWT(payload)
-            .setProtectedHeader({alg: JWT_ALGO})
-            .setExpirationTime(expiration)
-            .sign(secret);
-    }
-
-    private async verifyJwtToken(token: string): Promise<jose.JWTPayload> {
-        const secret = new TextEncoder().encode(JWT_SECRET);
-        try {
-            // Extract the payload, if the token is valid and NOT expired
-            const {payload} = await jose.jwtVerify(token, secret, {algorithms: [JWT_ALGO]});
-            return payload;
-        } catch (error: any) {
-            throw new Error('Token verification failed');
-        }
-    }
-
     public async generateMessageLogin(
         walletAddress: string,
         chainId: ChainId,
@@ -134,7 +92,7 @@ class StarknetService {
         // Generate secure random nonce
         const nonce = crypto.randomBytes(8).toString('hex');
         // Generate JWT token that includes walletAddress, chainId, and nonce
-        const token = await this.generateJwtToken({walletAddress, chainId, nonce}, '5 minutes');
+        const token = await authService.generateJwtToken({walletAddress, chainId, nonce}, '5 minutes');
         // Generate "typedData" message to be signed in the client
         const typedData = this.makeTypedData(
             'Login to Influence Tools',
@@ -158,7 +116,8 @@ class StarknetService {
         // console.log(`--- [verifySignature] args:`, arguments); //// TEST
         try {
             // Verify JWT token and extract its payload
-            const {walletAddress, chainId, nonce} = await this.verifyJwtToken(token) as any as JWTPayloadForAuth;
+            const payload = await authService.verifyJwtToken(token) as any as JWTPayloadForAuth;
+            const {walletAddress, chainId, nonce} = payload;
             // Ensure matching data in "typedData"
             const isMatchingAddress = (typedData.message as any).walletAddress === walletAddress;
             const isMatchingChainId = typedData.domain.chainId === chainId;
@@ -181,7 +140,7 @@ class StarknetService {
             const isValidSignature = await verifierAccount.verifyMessage(typedData, signature);
             if (isValidSignature) {
                 // Generate long-term JWT auth token that includes walletAddress, chainId
-                const token = await this.generateJwtToken({walletAddress, chainId}, '1 week');
+                const token = await authService.generateJwtToken({walletAddress, chainId}, '1 week');
                 return {
                     status: 200,
                     success: true,
@@ -202,43 +161,11 @@ class StarknetService {
             };
         }
     }
-
-    public async authTest(
-        data: any,
-        token: string,
-    ): Promise<AuthedResponse> {
-        // console.log(`--- [authTest] args:`, arguments); //// TEST
-        if (!token) {
-            return {
-                status: 401,
-                success: false,
-                error: 'Token missing',
-            };
-        }
-        try {
-            // Verify JWT token and extract its payload
-            const {walletAddress, chainId} = await this.verifyJwtToken(token) as any as JWTPayloadForAuth;
-            // console.log(`--- [authTest] proceed for authed user:`, {walletAddress, chainId}); //// TEST
-            //// TO DO: ...
-        } catch (error: any) {
-            return {
-                status: 401,
-                success: false,
-                error: 'Token invalid or expired',
-            };
-        }
-        return {
-            status: 200,
-            success: true,
-            data: {testResponse: 'Test Response'},
-        };
-    }
 }
 
 const starknetService: StarknetService = StarknetService.getInstance(); // singleton
 
 export {
-    AuthedResponse,
     ChainId,
     GenerateMessageLoginResponse,
     VerifySignatureResponse,

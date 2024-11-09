@@ -1,6 +1,5 @@
 import * as starknet from 'starknet';
 import {
-    AuthedResponse,
     ChainId,
     GenerateMessageLoginResponse,
     VerifySignatureResponse,
@@ -33,13 +32,6 @@ class RoutingService {
         token: string,
     ): Promise<VerifySignatureResponse> {
         return await starknetService.verifySignature(typedData, signature, token);
-    }
-
-    public async authTest(
-        data: any,
-        token: string,
-    ): Promise<AuthedResponse> {
-        return await starknetService.authTest(data, token);
     }
 }
 
