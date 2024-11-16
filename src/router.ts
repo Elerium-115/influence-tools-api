@@ -70,3 +70,22 @@ router.post(
         res.status(responseData.status).json(responseData);
     }
 );
+
+/**
+ * @desc        Get crews data for list of crew IDs
+ * @route       GET /crews-data/:ids
+ */
+router.get(
+    '/crews-data/:ids',
+    logRequestMiddleware,
+    async (req: Request, res: Response): Promise<void> => {
+        const crewsIds = req.params.ids.split(',');
+        //// TO DO: rework reponse to include status code
+        const data = await routingService.handleGetCrewsDataByIds(crewsIds);
+        if (data.error) {
+            res.json({error: data.error});
+            return;
+        }
+        res.json(data);
+    }
+);
