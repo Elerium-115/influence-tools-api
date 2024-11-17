@@ -1,5 +1,10 @@
 import * as starknet from 'starknet';
-import {CrewData} from './types.js';
+import {
+    CrewData,
+    CrewDataByIdResponse,
+    LotData,
+    LotDataByIdResponse,
+} from './types.js';
 import cache from './cache.js';
 import {
     ChainId,
@@ -37,7 +42,7 @@ class RoutingService {
         return await starknetService.verifySignature(typedData, signature, token);
     }
 
-    public async handlePostCrewsDataByIds(crewsIds: string[]): Promise<any> {
+    public async handlePostCrewsDataByIds(crewsIds: string[]): Promise<CrewDataByIdResponse> {
         // Fetch data only for NON-cached IDs
         const cachedData = cache.crewsDataById;
         const cachedIds = Object.keys(cachedData);
@@ -45,7 +50,11 @@ class RoutingService {
         if (nonCachedIds.length) {
             const data = await providerInfluenceth.fetchCrewsDataByIds(nonCachedIds);
             if (data.error) {
-                return data;
+                return {
+                    status: 500,
+                    success: false,
+                    error: data.error,
+                };
             }
         }
         /**
@@ -56,10 +65,14 @@ class RoutingService {
         crewsIds.forEach(crewId => {
             finalData[crewId] = cache.crewsDataById[crewId];
         });
-        return finalData;
+        return {
+            status: 200,
+            success: true,
+            data: finalData,
+        };
     }
 
-    public async handlePostLotsDataByIds(lotsIds: string[]): Promise<any> {
+    public async handlePostLotsDataByIds(lotsIds: string[]): Promise<LotDataByIdResponse> {
         // Fetch data only for NON-cached IDs
         const cachedData = cache.lotsDataById;
         const cachedIds = Object.keys(cachedData);
@@ -67,18 +80,26 @@ class RoutingService {
         if (nonCachedIds.length) {
             const data = await providerInfluenceth.fetchLotsDataByIds(nonCachedIds);
             if (data.error) {
-                return data;
+                return {
+                    status: 500,
+                    success: false,
+                    error: data.error,
+                };
             }
         }
         /**
          * At this point, the data for all IDs should be cached,
          * via "fetchLotsDataByIds" > "parseLotsData".
          */
-        const finalData: {[key: string]: any} = {};
+        const finalData: {[key: string]: LotData} = {};
         lotsIds.forEach(lotId => {
             finalData[lotId] = cache.lotsDataById[lotId];
         });
-        return finalData;
+        return {
+            status: 200,
+            success: true,
+            data: finalData,
+        };
     }
 }
 

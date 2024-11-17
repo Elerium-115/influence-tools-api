@@ -15,7 +15,7 @@ function logRequestMiddleware(req: Request, res: Response, next: NextFunction): 
 }
 
 /**
- * @route GET /
+ * @route   GET /
  */
 router.get(
     '/',
@@ -26,7 +26,7 @@ router.get(
 );
 
 /**
- * @route POST /generate-message-login
+ * @route   POST /generate-message-login
  */
 router.post(
     '/generate-message-login',
@@ -39,7 +39,7 @@ router.post(
 );
 
 /**
- * @route POST /verify-signature
+ * @route   POST /verify-signature
  */
 router.post(
     '/verify-signature',
@@ -52,7 +52,7 @@ router.post(
 );
 
 /**
- * @route POST /auth-test
+ * @route   POST /auth-test
  */
 router.post(
     '/auth-test',
@@ -72,39 +72,29 @@ router.post(
 );
 
 /**
- * @desc        Get crews data for list of crew IDs
- * @route       POST /crews-data
+ * @route   POST /crews-data
+ * @desc    Get crews data for list of crew IDs
  */
 router.post(
     '/crews-data',
     logRequestMiddleware,
     async (req: Request, res: Response): Promise<void> => {
         const crewsIds: string[] = req.body.map((id: number) => id.toString());
-        //// TO DO: rework reponse to include status code
-        const data = await routingService.handlePostCrewsDataByIds(crewsIds);
-        if (data.error) {
-            res.json({error: data.error});
-            return;
-        }
-        res.json(data);
+        const responseData = await routingService.handlePostCrewsDataByIds(crewsIds);
+        res.status(responseData.status).json(responseData);
     }
 );
 
 /**
- * @desc        Get lots data for list of lot IDs (unique across all asteroids)
- * @route       POST /lots-data
+ * @route   POST /lots-data
+ * @desc    Get lots data for list of lot IDs (unique across all asteroids)
  */
 router.post(
     '/lots-data',
     logRequestMiddleware,
     async (req: Request, res: Response): Promise<void> => {
         const lotsIds: string[] = req.body.map((id: number) => id.toString());
-        //// TO DO: rework reponse to include status code
-        const data = await routingService.handlePostLotsDataByIds(lotsIds);
-        if (data.error) {
-            res.json({error: data.error});
-            return;
-        }
-        res.json(data);
+        const responseData = await routingService.handlePostLotsDataByIds(lotsIds);
+        res.status(responseData.status).json(responseData);
     }
 );

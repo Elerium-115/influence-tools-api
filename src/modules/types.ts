@@ -8,11 +8,19 @@ interface CrewData {
     ownerName: string|null,
 }
 
+interface CrewDataByIdResponse extends StandardResponse {
+    data?: {[key: string]: CrewData},
+}
+
 // label = 4
 interface LotData {
     _raw?: any,
     lotId: string,
     buildingData: BuildingData,
+}
+
+interface LotDataByIdResponse extends StandardResponse {
+    data?: {[key: string]: LotData},
 }
 
 // label = 5
@@ -28,8 +36,18 @@ interface BuildingData {
     processors: any[],
 }
 
+interface StandardResponse {
+    status: number,
+    success: boolean,
+    data?: any, // if "success" TRUE
+    error?: string, // if "success" FALSE
+}
+
 export {
     BuildingData,
     CrewData,
+    CrewDataByIdResponse,
     LotData,
+    LotDataByIdResponse,
+    StandardResponse,
 }

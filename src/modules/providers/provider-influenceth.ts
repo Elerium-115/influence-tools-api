@@ -169,7 +169,7 @@ class ProviderInfluenceth {
     public async fetchLotsDataByIds(lotsIds: string[]): Promise<any> {
         // First fetch + cache the buildings data for "lotsIds" (if any)
         try {
-            this.fetchBuildingsDataByLotsIds(lotsIds);
+            await this.fetchBuildingsDataByLotsIds(lotsIds);
         } catch (error: any) {
             console.log(`--- [fetchLotsDataByIds] buildings ERROR:`, error); //// TEST
             // NO buildings data will be available when parsing the lots data (unless previously cached)
