@@ -22,6 +22,7 @@
         "typescript": "^5.6.3"
     },
     "dependencies": {
+        "@influenceth/sdk": "^2.3.6",
         "axios": "^1.7.7",
         "cors": "^2.8.5",
         "dotenv": "^16.4.5",
@@ -29,5 +30,8 @@
         "express": "^4.21.1",
         "jose": "^5.9.6",
         "starknetkit": "^2.3.3"
+    },
+    "peerDependencies": {
+        "zod": "^3.23.8"
     }
 }

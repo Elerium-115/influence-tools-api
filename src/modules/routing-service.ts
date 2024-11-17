@@ -37,7 +37,7 @@ class RoutingService {
         return await starknetService.verifySignature(typedData, signature, token);
     }
 
-    public async handleGetCrewsDataByIds(crewsIds: string[]): Promise<any> {
+    public async handlePostCrewsDataByIds(crewsIds: string[]): Promise<any> {
         // Fetch data only for NON-cached IDs
         const cachedData = cache.crewsDataById;
         const cachedIds = Object.keys(cachedData);
@@ -55,6 +55,28 @@ class RoutingService {
         const finalData: {[key: string]: CrewData} = {};
         crewsIds.forEach(crewId => {
             finalData[crewId] = cache.crewsDataById[crewId];
+        });
+        return finalData;
+    }
+
+    public async handlePostLotsDataByIds(lotsIds: string[]): Promise<any> {
+        // Fetch data only for NON-cached IDs
+        const cachedData = cache.lotsDataById;
+        const cachedIds = Object.keys(cachedData);
+        const nonCachedIds = lotsIds.filter(id => !cachedIds.includes(id));
+        if (nonCachedIds.length) {
+            const data = await providerInfluenceth.fetchLotsDataByIds(nonCachedIds);
+            if (data.error) {
+                return data;
+            }
+        }
+        /**
+         * At this point, the data for all IDs should be cached,
+         * via "fetchLotsDataByIds" > "parseLotsData".
+         */
+        const finalData: {[key: string]: any} = {};
+        lotsIds.forEach(lotId => {
+            finalData[lotId] = cache.lotsDataById[lotId];
         });
         return finalData;
     }

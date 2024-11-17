@@ -73,15 +73,34 @@ router.post(
 
 /**
  * @desc        Get crews data for list of crew IDs
- * @route       GET /crews-data/:ids
+ * @route       POST /crews-data
  */
-router.get(
-    '/crews-data/:ids',
+router.post(
+    '/crews-data',
     logRequestMiddleware,
     async (req: Request, res: Response): Promise<void> => {
-        const crewsIds = req.params.ids.split(',');
+        const crewsIds: string[] = req.body.map((id: number) => id.toString());
         //// TO DO: rework reponse to include status code
-        const data = await routingService.handleGetCrewsDataByIds(crewsIds);
+        const data = await routingService.handlePostCrewsDataByIds(crewsIds);
+        if (data.error) {
+            res.json({error: data.error});
+            return;
+        }
+        res.json(data);
+    }
+);
+
+/**
+ * @desc        Get lots data for list of lot IDs (unique across all asteroids)
+ * @route       POST /lots-data
+ */
+router.post(
+    '/lots-data',
+    logRequestMiddleware,
+    async (req: Request, res: Response): Promise<void> => {
+        const lotsIds: string[] = req.body.map((id: number) => id.toString());
+        //// TO DO: rework reponse to include status code
+        const data = await routingService.handlePostLotsDataByIds(lotsIds);
         if (data.error) {
             res.json({error: data.error});
             return;

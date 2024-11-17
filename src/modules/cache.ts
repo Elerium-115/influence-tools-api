@@ -5,18 +5,22 @@ export type AccessTokensKey = 'influenceth';
 
 const accessTokens: {[key in AccessTokensKey]?: string|null} = {};
 
-const asteroidsMetadataById: {[key: string]: Object} = {};
+const asteroidsMetadataById: {[key: string]: any} = {};
 
 /**
  * NOTE: each key is a lowercase address
  */
-const asteroidsPlanByAddress: {[key: string]: Object} = {};
+const asteroidsPlanByAddress: {[key: string]: any} = {};
 
 const crewsDataById: {[key: string]: CrewData} = {};
 
-const shipsDataById: {[key: string]: Object} = {};
+const lotsDataById: {[key: string]: any} = {};
 
-const inventoriesDataByLabelAndId: {[key: string]: Object} = {
+const buildingsDataByLotId: {[key: string]: any} = {};
+
+const shipsDataById: {[key: string]: any} = {};
+
+const inventoriesDataByLabelAndId: {[key: string]: any} = {
     5: {}, // buildings
     6: {}, // ships
 };
@@ -31,14 +35,16 @@ interface OwnedAsteroidsIdsByAddress {
  */
 const ownedAsteroidsIdsByAddress: {[key: string]: OwnedAsteroidsIdsByAddress} = {};
 
-const productionPlanDataById: {[key: string]: Object} = {};
+const productionPlanDataById: {[key: string]: any} = {};
 
 export default {
     accessTokens,
     asteroidsMetadataById,
     asteroidsPlanByAddress,
+    buildingsDataByLotId,
     crewsDataById,
     inventoriesDataByLabelAndId,
+    lotsDataById,
     ownedAsteroidsIdsByAddress,
     productionPlanDataById,
     shipsDataById,
