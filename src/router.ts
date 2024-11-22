@@ -53,20 +53,17 @@ router.post(
 );
 
 /**
- * @route   POST /auth-test
+ * @route   POST /verify-token
  */
 router.post(
-    '/auth-test',
+    '/verify-token',
     logRequestMiddleware,
     authService.verifyJwtTokenMiddleware, // protected endpoint
     async (req: Request, res: Response): Promise<void> => {
+        // Token valid if "verifyJwtTokenMiddleware" called "next()"
         const responseData = {
             status: 200,
             success: true,
-            data: {
-                walletAddress: req.walletAddress,
-                chainId: req.chainId,
-                testResponse: 'Test response for valid JWT token'},
         };
         res.status(responseData.status).json(responseData);
     }
