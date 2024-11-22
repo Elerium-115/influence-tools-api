@@ -42,13 +42,16 @@ class RoutingService {
         return await starknetService.verifySignature(typedData, signature, token);
     }
 
-    public async handlePostCrewsDataByIds(crewsIds: string[]): Promise<CrewDataByIdResponse> {
+    public async handlePostCrewsData(
+        chainId: ChainId,
+        crewsIds: string[],
+    ): Promise<CrewDataByIdResponse> {
         // Fetch data only for NON-cached IDs
-        const cachedData = cache.crewsDataById;
+        const cachedData = cache.crewsDataByChainAndId[chainId];
         const cachedIds = Object.keys(cachedData);
         const nonCachedIds = crewsIds.filter(id => !cachedIds.includes(id));
         if (nonCachedIds.length) {
-            const data = await providerInfluenceth.fetchCrewsDataByIds(nonCachedIds);
+            const data = await providerInfluenceth.fetchCrewsData(chainId, nonCachedIds);
             if (data.error) {
                 return {
                     status: 500,
@@ -59,11 +62,11 @@ class RoutingService {
         }
         /**
          * At this point, the data for all IDs should be cached,
-         * via "fetchCrewsDataByIds" > "parseCrewsData".
+         * via "fetchCrewsData" > "parseCrewsData".
          */
         const finalData: {[key: string]: CrewData} = {};
         crewsIds.forEach(crewId => {
-            finalData[crewId] = cache.crewsDataById[crewId];
+            finalData[crewId] = cache.crewsDataByChainAndId[chainId][crewId];
         });
         return {
             status: 200,
@@ -72,7 +75,7 @@ class RoutingService {
         };
     }
 
-    public async handlePostLotsDataByIds(
+    public async handlePostLotsData(
         chainId: ChainId,
         lotsIds: string[],
     ): Promise<LotDataByIdResponse> {
@@ -81,7 +84,7 @@ class RoutingService {
         const cachedIds = Object.keys(cachedData);
         const nonCachedIds = lotsIds.filter(id => !cachedIds.includes(id));
         if (nonCachedIds.length) {
-            const data = await providerInfluenceth.fetchLotsDataByIds(chainId, nonCachedIds);
+            const data = await providerInfluenceth.fetchLotsData(chainId, nonCachedIds);
             if (data.error) {
                 return {
                     status: 500,
@@ -92,7 +95,7 @@ class RoutingService {
         }
         /**
          * At this point, the data for all IDs should be cached,
-         * via "fetchLotsDataByIds" > "parseLotsData".
+         * via "fetchLotsData" > "parseLotsData".
          */
         const finalData: {[key: string]: LotData} = {};
         lotsIds.forEach(lotId => {

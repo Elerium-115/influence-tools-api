@@ -80,8 +80,9 @@ router.post(
     '/crews-data',
     logRequestMiddleware,
     async (req: Request, res: Response): Promise<void> => {
-        const crewsIds: string[] = req.body.map((id: number) => id.toString());
-        const responseData = await routingService.handlePostCrewsDataByIds(crewsIds);
+        const chainId: ChainId = req.body.chainId;
+        const crewsIds: string[] = req.body.crewsIds?.map((id: number) => id.toString());
+        const responseData = await routingService.handlePostCrewsData(chainId, crewsIds);
         res.status(responseData.status).json(responseData);
     }
 );
@@ -96,7 +97,7 @@ router.post(
     async (req: Request, res: Response): Promise<void> => {
         const chainId: ChainId = req.body.chainId;
         const lotsIds: string[] = req.body.lotsIds?.map((id: number) => id.toString());
-        const responseData = await routingService.handlePostLotsDataByIds(chainId, lotsIds);
+        const responseData = await routingService.handlePostLotsData(chainId, lotsIds);
         res.status(responseData.status).json(responseData);
     }
 );

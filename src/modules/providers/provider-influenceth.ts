@@ -56,7 +56,7 @@ class ProviderInfluenceth {
         return ProviderInfluenceth.instance;
     }
 
-    private async getAxiosInstance(chainId: ChainId = 'SN_MAIN'): Promise<AxiosInstance> {
+    private async getAxiosInstance(chainId: ChainId): Promise<AxiosInstance> {
         switch (chainId) {
             case 'SN_SEPOLIA':
                 if (!this.axiosInstanceSepolia) {
@@ -125,14 +125,17 @@ class ProviderInfluenceth {
         return metadata;
     }
 
-    private parseCrewsData(rawData: any): any {
+    private parseCrewsData(
+        chainId: ChainId,
+        rawData: any,
+    ): any {
         const parsedCrewDataById: {[key: string]: CrewData} = {};
         try {
             for (const crewDataRaw of rawData.hits.hits) {
                 const crewData = crewDataRaw._source;
                 const parsedCrewData = this.parseCrewData(crewData);
                 parsedCrewDataById[crewData.id] = parsedCrewData;
-                cache.crewsDataById[crewData.id] = parsedCrewData;
+                cache.crewsDataByChainAndId[chainId][crewData.id] = parsedCrewData;
             }
         } catch (error: any) {
             console.log(`--- [parseCrewsData] ERROR:`, error); //// TEST
@@ -140,9 +143,12 @@ class ProviderInfluenceth {
         return parsedCrewDataById;
     }
 
-    public async fetchCrewsDataByIds(crewsIds: string[]): Promise<any> {
+    public async fetchCrewsData(
+        chainId: ChainId,
+        crewsIds: string[],
+    ): Promise<any> {
         try {
-            const axiosInstance = await this.getAxiosInstance();
+            const axiosInstance = await this.getAxiosInstance(chainId);
             const query = esb.boolQuery()
                 .filter(
                     esb.termsQuery('id', crewsIds), // search by list of crew IDs
@@ -152,19 +158,22 @@ class ProviderInfluenceth {
                 .size(crewsIds.length);
             const response = await axiosInstance.post('/_search/crew', requestBody.toJSON());
             const rawData = response.data;
-            return this.parseCrewsData(rawData);
+            return this.parseCrewsData(chainId, rawData);
         } catch (error: any) {
-            console.log(`--- [fetchCrewsDataByIds] ERROR:`, error); //// TEST
+            console.log(`--- [fetchCrewsData] ERROR:`, error); //// TEST
             return {error};
         }
     }
     // Crews -- END
 
     // Lots -- START
-    private parseLotData(rawData: any): LotData {
+    private parseLotData(
+        chainId: ChainId,
+        rawData: any,
+    ): LotData {
         // console.log(`--- [parseLotData] rawData:`, rawData); //// TEST
         const lotId: string = rawData.id.toString();
-        const buildingData: any = cache.buildingsDataByLotId[lotId];
+        const buildingData: BuildingData = cache.buildingsDataByChainAndLotId[chainId][lotId];
         const metadata: LotData = {
             // _raw: rawData, //// TEST
             lotId,
@@ -182,7 +191,7 @@ class ProviderInfluenceth {
         try {
             for (const lotDataRaw of rawData.hits.hits) {
                 const lotData = lotDataRaw._source;
-                const parsedLotData = this.parseLotData(lotData);
+                const parsedLotData = this.parseLotData(chainId, lotData);
                 parsedLotsDataById[lotData.id] = parsedLotData;
                 cache.lotsDataByChainAndId[chainId][lotData.id] = parsedLotData;
             }
@@ -192,7 +201,7 @@ class ProviderInfluenceth {
         return parsedLotsDataById;
     }
 
-    public async fetchLotsDataByIds(
+    public async fetchLotsData(
         chainId: ChainId,
         lotsIds: string[],
     ): Promise<any> {
@@ -200,7 +209,7 @@ class ProviderInfluenceth {
         try {
             await this.fetchBuildingsDataByLotsIds(chainId, lotsIds);
         } catch (error: any) {
-            console.log(`--- [fetchLotsDataByIds] buildings ERROR:`, error); //// TEST
+            console.log(`--- [fetchLotsData] buildings ERROR:`, error); //// TEST
             // NO buildings data will be available when parsing the lots data (unless previously cached)
         }
         // Then fetch the lots data for "lotsIds"
@@ -217,7 +226,7 @@ class ProviderInfluenceth {
             const rawData = response.data;
             return this.parseLotsData(chainId, rawData);
         } catch (error: any) {
-            console.log(`--- [fetchLotsDataByIds] lots ERROR:`, error); //// TEST
+            console.log(`--- [fetchLotsData] lots ERROR:`, error); //// TEST
             return {error};
         }
     }
@@ -249,13 +258,16 @@ class ProviderInfluenceth {
         return metadata;
     }
 
-    private parseBuildingsData(rawData: any): void {
+    private parseBuildingsData(
+        chainId: ChainId,
+        rawData: any,
+    ): void {
         try {
             for (const buildingDataRaw of rawData.hits.hits) {
                 const buildingData = buildingDataRaw._source;
                 const parsedBuildingData = this.parseBuildingData(buildingData);
                 const lotId = parsedBuildingData.lotId;
-                cache.buildingsDataByLotId[lotId] = parsedBuildingData;
+                cache.buildingsDataByChainAndLotId[chainId][lotId] = parsedBuildingData;
             }
         } catch (error: any) {
             console.log(`--- [parseBuildingsData] ERROR:`, error); //// TEST
@@ -280,7 +292,7 @@ class ProviderInfluenceth {
                 .size(lotsIds.length);
             const response = await axiosInstance.post('/_search/building', requestBody.toJSON());
             const rawData = response.data;
-            return this.parseBuildingsData(rawData);
+            return this.parseBuildingsData(chainId, rawData);
         } catch (error: any) {
             console.log(`--- [fetchBuildingsDataByLotsIds] ERROR:`, error); //// TEST
             return {error};

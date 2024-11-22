@@ -1,4 +1,8 @@
-import {CrewData} from './types.js';
+import {
+    BuildingData,
+    CrewData,
+    LotData,
+} from './types.js';
 import {ChainId} from './starknet-service.js';
 
 // Add more providers here => 'influenceth'|...|'otherprovider'
@@ -13,14 +17,20 @@ const asteroidsMetadataById: {[key: string]: any} = {};
  */
 const asteroidsPlanByAddress: {[key: string]: any} = {};
 
-const crewsDataById: {[key: string]: CrewData} = {};
-
-const lotsDataByChainAndId: {[key in ChainId]: {[key: string]: any}} = {
+const crewsDataByChainAndId: {[key in ChainId]: {[key: string]: CrewData}} = {
     'SN_MAIN': {},
     'SN_SEPOLIA': {},
 };
 
-const buildingsDataByLotId: {[key: string]: any} = {};
+const lotsDataByChainAndId: {[key in ChainId]: {[key: string]: LotData}} = {
+    'SN_MAIN': {},
+    'SN_SEPOLIA': {},
+};
+
+const buildingsDataByChainAndLotId: {[key in ChainId]: {[key: string]: BuildingData}} = {
+    'SN_MAIN': {},
+    'SN_SEPOLIA': {},
+};
 
 const shipsDataById: {[key: string]: any} = {};
 
@@ -45,8 +55,8 @@ export default {
     accessTokens,
     asteroidsMetadataById,
     asteroidsPlanByAddress,
-    buildingsDataByLotId,
-    crewsDataById,
+    buildingsDataByChainAndLotId,
+    crewsDataByChainAndId,
     inventoriesDataByLabelAndId,
     lotsDataByChainAndId,
     ownedAsteroidsIdsByAddress,
