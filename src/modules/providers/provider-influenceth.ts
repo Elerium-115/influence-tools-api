@@ -8,6 +8,7 @@ import {
 } from '../types.js';
 import cache from '../cache.js';
 import utils from '../utils.js';
+import {ChainId} from '../starknet-service.js';
 import {playerByAddress} from '../../data/player-by-address.js';
 
 /**
@@ -25,6 +26,7 @@ import {playerByAddress} from '../../data/player-by-address.js';
  */
 
 const INFLUENCE_API_URL = 'https://api.influenceth.io';
+const INFLUENCE_API_URL_SEPOLIA = 'https://api-prerelease.influenceth.io';
 
 const ETHEREUM_ADDRESS_LENGTH = 42;
 const SWAY_PER_LOT = 6922;
@@ -45,6 +47,7 @@ class ProviderInfluenceth {
     private static instance: ProviderInfluenceth;
 
     private axiosInstance: AxiosInstance|null = null;
+    private axiosInstanceSepolia: AxiosInstance|null = null;
 
     public static getInstance(): ProviderInfluenceth {
         if (!ProviderInfluenceth.instance) {
@@ -53,23 +56,43 @@ class ProviderInfluenceth {
         return ProviderInfluenceth.instance;
     }
 
-    private async getAxiosInstance(): Promise<AxiosInstance> {
-        if (!this.axiosInstance) {
-            const token = await utils.loadAccessToken('influenceth');
-            this.axiosInstance = axios.create({
-                baseURL: INFLUENCE_API_URL,
-                headers: {
-                    'Authorization': `Bearer ${token}`,
-                },
-            });
+    private async getAxiosInstance(chainId: ChainId = 'SN_MAIN'): Promise<AxiosInstance> {
+        switch (chainId) {
+            case 'SN_SEPOLIA':
+                if (!this.axiosInstanceSepolia) {
+                    const token = await utils.loadAccessToken('influenceth-prerelease');
+                    this.axiosInstanceSepolia = axios.create({
+                        baseURL: INFLUENCE_API_URL_SEPOLIA,
+                        headers: {
+                            'Authorization': `Bearer ${token}`,
+                        },
+                    });
+                }
+                return this.axiosInstanceSepolia;
+            case 'SN_MAIN':
+            default:
+                if (!this.axiosInstance) {
+                    const token = await utils.loadAccessToken('influenceth');
+                    this.axiosInstance = axios.create({
+                        baseURL: INFLUENCE_API_URL,
+                        headers: {
+                            'Authorization': `Bearer ${token}`,
+                        },
+                    });
+                }
+                return this.axiosInstance;
         }
-        return this.axiosInstance;
     }
 
-    public async fetchAccessToken(clientId: string, clientKey: string): Promise<string|null> {
+    public async fetchAccessToken(
+        chainId: ChainId,
+        clientId: string,
+        clientKey: string,
+    ): Promise<string|null> {
         try {
             // NOT using "getAxiosInstance" b/c that requires the access token to already be loaded
-            const axiosInstance = axios.create({baseURL: INFLUENCE_API_URL});
+            const baseURL = chainId === 'SN_SEPOLIA' ? INFLUENCE_API_URL_SEPOLIA : INFLUENCE_API_URL;
+            const axiosInstance = axios.create({baseURL});
             const data = {
                 grant_type: 'client_credentials',
                 client_id: clientId,
@@ -151,14 +174,17 @@ class ProviderInfluenceth {
         return metadata;
     }
 
-    private parseLotsData(rawData: any): any {
+    private parseLotsData(
+        chainId: ChainId,
+        rawData: any,
+    ): any {
         const parsedLotsDataById: {[key: string]: LotData} = {};
         try {
             for (const lotDataRaw of rawData.hits.hits) {
                 const lotData = lotDataRaw._source;
                 const parsedLotData = this.parseLotData(lotData);
                 parsedLotsDataById[lotData.id] = parsedLotData;
-                cache.lotsDataById[lotData.id] = parsedLotData;
+                cache.lotsDataByChainAndId[chainId][lotData.id] = parsedLotData;
             }
         } catch (error: any) {
             console.log(`--- [parseLotsData] ERROR:`, error); //// TEST
@@ -166,17 +192,20 @@ class ProviderInfluenceth {
         return parsedLotsDataById;
     }
 
-    public async fetchLotsDataByIds(lotsIds: string[]): Promise<any> {
+    public async fetchLotsDataByIds(
+        chainId: ChainId,
+        lotsIds: string[],
+    ): Promise<any> {
         // First fetch + cache the buildings data for "lotsIds" (if any)
         try {
-            await this.fetchBuildingsDataByLotsIds(lotsIds);
+            await this.fetchBuildingsDataByLotsIds(chainId, lotsIds);
         } catch (error: any) {
             console.log(`--- [fetchLotsDataByIds] buildings ERROR:`, error); //// TEST
             // NO buildings data will be available when parsing the lots data (unless previously cached)
         }
         // Then fetch the lots data for "lotsIds"
         try {
-            const axiosInstance = await this.getAxiosInstance();
+            const axiosInstance = await this.getAxiosInstance(chainId);
             const query = esb.boolQuery()
                 .filter(
                     esb.termsQuery('id', lotsIds.map(id => Number(id))), // search by list of lot IDs
@@ -186,7 +215,7 @@ class ProviderInfluenceth {
                 .size(lotsIds.length);
             const response = await axiosInstance.post('/_search/lot', requestBody.toJSON());
             const rawData = response.data;
-            return this.parseLotsData(rawData);
+            return this.parseLotsData(chainId, rawData);
         } catch (error: any) {
             console.log(`--- [fetchLotsDataByIds] lots ERROR:`, error); //// TEST
             return {error};
@@ -233,9 +262,12 @@ class ProviderInfluenceth {
         }
     }
 
-    public async fetchBuildingsDataByLotsIds(lotsIds: string[]): Promise<any> {
+    public async fetchBuildingsDataByLotsIds(
+        chainId: ChainId,
+        lotsIds: string[],
+    ): Promise<any> {
         try {
-            const axiosInstance = await this.getAxiosInstance();
+            const axiosInstance = await this.getAxiosInstance(chainId);
             const query = esb.boolQuery()
                 .mustNot(
                     esb.termQuery('Building.status', 0), // exclude "unplanned" buildings

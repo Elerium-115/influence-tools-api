@@ -19,7 +19,17 @@ async function loadAccessToken(provider: AccessTokensKey): Promise<string|null> 
             try {
                 const clientId = process.env.INFLUENCETH_IO_API_ID as string;
                 const clientKey = process.env.INFLUENCETH_IO_API_KEY as string;
-                token = await providerInfluenceth.fetchAccessToken(clientId, clientKey);
+                token = await providerInfluenceth.fetchAccessToken('SN_MAIN', clientId, clientKey);
+            } catch (error: any) {
+                console.log(`--- [loadAccessToken('${provider}')] ERROR:`, error); //// TEST
+                return null;
+            }
+            break;
+        case 'influenceth-prerelease':
+            try {
+                const clientId = process.env.INFLUENCETH_IO_PRERELEASE_API_ID as string;
+                const clientKey = process.env.INFLUENCETH_IO_PRERELEASE_API_KEY as string;
+                token = await providerInfluenceth.fetchAccessToken('SN_SEPOLIA', clientId, clientKey);
             } catch (error: any) {
                 console.log(`--- [loadAccessToken('${provider}')] ERROR:`, error); //// TEST
                 return null;

@@ -6,6 +6,7 @@ import express, {
 import {testData} from './modules/test.js';
 import {authService} from './modules/auth-service.js';
 import {routingService} from './modules/routing-service.js';
+import {ChainId} from './modules/starknet-service.js';
 
 export const router = express.Router();
 
@@ -93,8 +94,9 @@ router.post(
     '/lots-data',
     logRequestMiddleware,
     async (req: Request, res: Response): Promise<void> => {
-        const lotsIds: string[] = req.body.map((id: number) => id.toString());
-        const responseData = await routingService.handlePostLotsDataByIds(lotsIds);
+        const chainId: ChainId = req.body.chainId;
+        const lotsIds: string[] = req.body.lotsIds?.map((id: number) => id.toString());
+        const responseData = await routingService.handlePostLotsDataByIds(chainId, lotsIds);
         res.status(responseData.status).json(responseData);
     }
 );

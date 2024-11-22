@@ -72,13 +72,16 @@ class RoutingService {
         };
     }
 
-    public async handlePostLotsDataByIds(lotsIds: string[]): Promise<LotDataByIdResponse> {
+    public async handlePostLotsDataByIds(
+        chainId: ChainId,
+        lotsIds: string[],
+    ): Promise<LotDataByIdResponse> {
         // Fetch data only for NON-cached IDs
-        const cachedData = cache.lotsDataById;
+        const cachedData = cache.lotsDataByChainAndId[chainId];
         const cachedIds = Object.keys(cachedData);
         const nonCachedIds = lotsIds.filter(id => !cachedIds.includes(id));
         if (nonCachedIds.length) {
-            const data = await providerInfluenceth.fetchLotsDataByIds(nonCachedIds);
+            const data = await providerInfluenceth.fetchLotsDataByIds(chainId, nonCachedIds);
             if (data.error) {
                 return {
                     status: 500,
@@ -93,7 +96,7 @@ class RoutingService {
          */
         const finalData: {[key: string]: LotData} = {};
         lotsIds.forEach(lotId => {
-            finalData[lotId] = cache.lotsDataById[lotId];
+            finalData[lotId] = cache.lotsDataByChainAndId[chainId][lotId];
         });
         return {
             status: 200,

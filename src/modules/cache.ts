@@ -1,7 +1,8 @@
 import {CrewData} from './types.js';
+import {ChainId} from './starknet-service.js';
 
-// Add more providers here => 'influenceth'|'otherprovider'
-export type AccessTokensKey = 'influenceth';
+// Add more providers here => 'influenceth'|...|'otherprovider'
+export type AccessTokensKey = 'influenceth'|'influenceth-prerelease';
 
 const accessTokens: {[key in AccessTokensKey]?: string|null} = {};
 
@@ -14,7 +15,10 @@ const asteroidsPlanByAddress: {[key: string]: any} = {};
 
 const crewsDataById: {[key: string]: CrewData} = {};
 
-const lotsDataById: {[key: string]: any} = {};
+const lotsDataByChainAndId: {[key in ChainId]: {[key: string]: any}} = {
+    'SN_MAIN': {},
+    'SN_SEPOLIA': {},
+};
 
 const buildingsDataByLotId: {[key: string]: any} = {};
 
@@ -44,7 +48,7 @@ export default {
     buildingsDataByLotId,
     crewsDataById,
     inventoriesDataByLabelAndId,
-    lotsDataById,
+    lotsDataByChainAndId,
     ownedAsteroidsIdsByAddress,
     productionPlanDataById,
     shipsDataById,

@@ -17,5 +17,6 @@ app.listen(port, () => {
     console.log(`--- listening on port ${port}`);
 });
 
-// Async initialize "cache.accessTokens.influenceth"
+// Async initialize "cache.accessTokens" for each provider
 utils.loadAccessToken('influenceth');
+utils.loadAccessToken('influenceth-prerelease');
