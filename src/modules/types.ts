@@ -16,7 +16,7 @@ interface CrewDataByIdResponse extends StandardResponse {
 interface LotData {
     _raw?: any,
     lotId: string,
-    buildingData: BuildingData,
+    buildingData: BuildingData|null, // null for Empty Lot
 }
 
 interface LotDataByIdResponse extends StandardResponse {

@@ -173,7 +173,7 @@ class ProviderInfluenceth {
     ): LotData {
         // console.log(`--- [parseLotData] rawData:`, rawData); //// TEST
         const lotId: string = rawData.id.toString();
-        const buildingData: BuildingData = cache.buildingsDataByChainAndLotId[chainId][lotId];
+        const buildingData: BuildingData|null = cache.buildingsDataByChainAndLotId[chainId][lotId];
         const metadata: LotData = {
             // _raw: rawData, //// TEST
             lotId,
@@ -186,15 +186,29 @@ class ProviderInfluenceth {
     private parseLotsData(
         chainId: ChainId,
         rawData: any,
+        lotsIdsRequested: string[],
     ): any {
         const parsedLotsDataById: {[key: string]: LotData} = {};
         try {
+            const lotsIdsWithLotData: string[] = [];
             for (const lotDataRaw of rawData.hits.hits) {
                 const lotData = lotDataRaw._source;
                 const parsedLotData = this.parseLotData(chainId, lotData);
-                parsedLotsDataById[lotData.id] = parsedLotData;
-                cache.lotsDataByChainAndId[chainId][lotData.id] = parsedLotData;
+                const lotId = parsedLotData.lotId; // NOT using "lotData.id" re: type mismatch
+                parsedLotsDataById[lotId] = parsedLotData;
+                cache.lotsDataByChainAndId[chainId][lotId] = parsedLotData;
+                lotsIdsWithLotData.push(lotId);
             }
+            // Any lots for which NO lot data was received are assumed as Empty Lots
+            lotsIdsRequested.filter(lotId => !lotsIdsWithLotData.includes(lotId))
+                .forEach(emptyLotId => {
+                    const emptyLotData: LotData = {
+                        lotId: emptyLotId.toString(),
+                        buildingData: null, // Empty Lot
+                    };
+                    parsedLotsDataById[emptyLotId] = emptyLotData;
+                    cache.lotsDataByChainAndId[chainId][emptyLotId] = emptyLotData;
+                });
         } catch (error: any) {
             console.log(`--- [parseLotsData] ERROR:`, error); //// TEST
         }
@@ -224,7 +238,7 @@ class ProviderInfluenceth {
                 .size(lotsIds.length);
             const response = await axiosInstance.post('/_search/lot', requestBody.toJSON());
             const rawData = response.data;
-            return this.parseLotsData(chainId, rawData);
+            return this.parseLotsData(chainId, rawData, lotsIds);
         } catch (error: any) {
             console.log(`--- [fetchLotsData] lots ERROR:`, error); //// TEST
             return {error};
@@ -261,14 +275,22 @@ class ProviderInfluenceth {
     private parseBuildingsData(
         chainId: ChainId,
         rawData: any,
+        lotsIdsRequested: string[],
     ): void {
         try {
+            const lotsIdsWithBuildingData: string[] = [];
             for (const buildingDataRaw of rawData.hits.hits) {
                 const buildingData = buildingDataRaw._source;
                 const parsedBuildingData = this.parseBuildingData(buildingData);
                 const lotId = parsedBuildingData.lotId;
                 cache.buildingsDataByChainAndLotId[chainId][lotId] = parsedBuildingData;
+                lotsIdsWithBuildingData.push(lotId);
             }
+            // Any lots for which NO building data was received are assumed as Empty Lots
+            lotsIdsRequested.filter(lotId => !lotsIdsWithBuildingData.includes(lotId))
+                .forEach(emptyLotId => {
+                    cache.buildingsDataByChainAndLotId[chainId][emptyLotId] = null;
+                });
         } catch (error: any) {
             console.log(`--- [parseBuildingsData] ERROR:`, error); //// TEST
         }
@@ -292,7 +314,7 @@ class ProviderInfluenceth {
                 .size(lotsIds.length);
             const response = await axiosInstance.post('/_search/building', requestBody.toJSON());
             const rawData = response.data;
-            return this.parseBuildingsData(chainId, rawData);
+            return this.parseBuildingsData(chainId, rawData, lotsIds);
         } catch (error: any) {
             console.log(`--- [fetchBuildingsDataByLotsIds] ERROR:`, error); //// TEST
             return {error};
