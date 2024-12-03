@@ -46,9 +46,10 @@ class RoutingService {
         chainId: ChainId,
         crewsIds: string[],
     ): Promise<CrewDataByIdResponse> {
-        // Fetch data only for NON-cached IDs
+        // Fetch data only for IDs without a FRESH cache
         const cachedData = cache.crewsDataByChainAndId[chainId];
-        const cachedIds = Object.keys(cachedData);
+        const cachedIds = Object.keys(cachedData)
+            .filter(crewId => cache.isFreshCache(cachedData[crewId], cache.MS.HOUR));
         const nonCachedIds = crewsIds.filter(id => !cachedIds.includes(id));
         if (nonCachedIds.length) {
             const data = await providerInfluenceth.fetchCrewsData(chainId, nonCachedIds);
@@ -79,9 +80,10 @@ class RoutingService {
         chainId: ChainId,
         lotsIds: string[],
     ): Promise<LotDataByIdResponse> {
-        // Fetch data only for NON-cached IDs
+        // Fetch data only for IDs without a FRESH cache
         const cachedData = cache.lotsDataByChainAndId[chainId];
-        const cachedIds = Object.keys(cachedData);
+        const cachedIds = Object.keys(cachedData)
+            .filter(lotId => cache.isFreshCache(cachedData[lotId], cache.MS.MINUTE));
         const nonCachedIds = lotsIds.filter(id => !cachedIds.includes(id));
         if (nonCachedIds.length) {
             const data = await providerInfluenceth.fetchLotsData(chainId, nonCachedIds);

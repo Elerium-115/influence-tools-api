@@ -228,14 +228,20 @@ class ProviderInfluenceth {
         chainId: ChainId,
         lotsIds: string[],
     ): Promise<any> {
-        // First fetch + cache the buildings data for "lotsIds" (if any)
+        /**
+         * FIRST: fetch + cache the buildings data for "lotsIds" (if any).
+         * 
+         * NOTE: NOT using any previously cached data for buildings here,
+         * b/c any query for new lots-data also needs to trigger
+         * a query for new buildings-data associated with those lots.
+         */
         try {
             await this.fetchBuildingsDataByLotsIds(chainId, lotsIds);
         } catch (error: any) {
             console.log(`--- [fetchLotsData] buildings ERROR:`, error); //// TEST
             // NO buildings data will be available when parsing the lots data (unless previously cached)
         }
-        // Then fetch the lots data for "lotsIds"
+        // THEN: fetch the lots data for "lotsIds"
         try {
             const axiosInstance = await this.getAxiosInstance(chainId);
             const query = esb.boolQuery()
