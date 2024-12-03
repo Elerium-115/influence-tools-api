@@ -1,6 +1,7 @@
 // label = 1
 interface CrewData {
     _raw?: any,
+    _timestamp?: number,
     crewId: string,
     delegatedToAddress: string,
     delegatedToName: string|null,
@@ -15,8 +16,9 @@ interface CrewDataByIdResponse extends StandardResponse {
 // label = 4
 interface LotData {
     _raw?: any,
+    _timestamp?: number,
     lotId: string,
-    buildingData: BuildingData|null, // null for Empty Lot
+    buildingData: BuildingData|BuildingDataForEmptyLot,
 }
 
 interface LotDataByIdResponse extends StandardResponse {
@@ -26,6 +28,7 @@ interface LotDataByIdResponse extends StandardResponse {
 // label = 5
 interface BuildingData {
     _raw?: any,
+    _timestamp?: number,
     buildingId: string,
     buildingDetails: any,
     buildingName: string|null,
@@ -34,6 +37,13 @@ interface BuildingData {
     dryDocks: any[],
     extractors: any[],
     processors: any[],
+    isEmptyLot: false,
+}
+
+interface BuildingDataForEmptyLot {
+    _timestamp?: number,
+    lotId: string,
+    isEmptyLot: true,
 }
 
 interface StandardResponse {
@@ -45,6 +55,7 @@ interface StandardResponse {
 
 export {
     BuildingData,
+    BuildingDataForEmptyLot,
     CrewData,
     CrewDataByIdResponse,
     LotData,

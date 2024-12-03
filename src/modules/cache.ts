@@ -1,5 +1,6 @@
 import {
     BuildingData,
+    BuildingDataForEmptyLot,
     CrewData,
     LotData,
 } from './types.js';
@@ -27,7 +28,7 @@ const lotsDataByChainAndId: {[key in ChainId]: {[key: string]: LotData}} = {
     'SN_SEPOLIA': {},
 };
 
-const buildingsDataByChainAndLotId: {[key in ChainId]: {[key: string]: BuildingData|null}} = {
+const buildingsDataByChainAndLotId: {[key in ChainId]: {[key: string]: BuildingData|BuildingDataForEmptyLot}} = {
     'SN_MAIN': {},
     'SN_SEPOLIA': {},
 };

@@ -3,6 +3,7 @@ import esb from 'elastic-builder';
 // import * as InfluenceSDK from '@influenceth/sdk'; //// TO DO: enable if / when needed
 import {
     BuildingData,
+    BuildingDataForEmptyLot,
     CrewData,
     LotData,
 } from '../types.js';
@@ -134,6 +135,7 @@ class ProviderInfluenceth {
             for (const crewDataRaw of rawData.hits.hits) {
                 const crewData = crewDataRaw._source;
                 const parsedCrewData = this.parseCrewData(crewData);
+                parsedCrewData._timestamp = Date.now();
                 parsedCrewDataById[crewData.id] = parsedCrewData;
                 cache.crewsDataByChainAndId[chainId][crewData.id] = parsedCrewData;
             }
@@ -173,7 +175,7 @@ class ProviderInfluenceth {
     ): LotData {
         // console.log(`--- [parseLotData] rawData:`, rawData); //// TEST
         const lotId: string = rawData.id.toString();
-        const buildingData: BuildingData|null = cache.buildingsDataByChainAndLotId[chainId][lotId];
+        const buildingData: BuildingData|BuildingDataForEmptyLot = cache.buildingsDataByChainAndLotId[chainId][lotId];
         const metadata: LotData = {
             // _raw: rawData, //// TEST
             lotId,
@@ -194,6 +196,7 @@ class ProviderInfluenceth {
             for (const lotDataRaw of rawData.hits.hits) {
                 const lotData = lotDataRaw._source;
                 const parsedLotData = this.parseLotData(chainId, lotData);
+                parsedLotData._timestamp = Date.now();
                 const lotId = parsedLotData.lotId; // NOT using "lotData.id" re: type mismatch
                 parsedLotsDataById[lotId] = parsedLotData;
                 cache.lotsDataByChainAndId[chainId][lotId] = parsedLotData;
@@ -202,9 +205,15 @@ class ProviderInfluenceth {
             // Any lots for which NO lot data was received are assumed as Empty Lots
             lotsIdsRequested.filter(lotId => !lotsIdsWithLotData.includes(lotId))
                 .forEach(emptyLotId => {
+                    const buildingDataForEmptyLot: BuildingDataForEmptyLot = {
+                        _timestamp: Date.now(),
+                        lotId: emptyLotId,
+                        isEmptyLot: true,
+                    };
                     const emptyLotData: LotData = {
-                        lotId: emptyLotId.toString(),
-                        buildingData: null, // Empty Lot
+                        _timestamp: Date.now(),
+                        lotId: emptyLotId,
+                        buildingData: buildingDataForEmptyLot,
                     };
                     parsedLotsDataById[emptyLotId] = emptyLotData;
                     cache.lotsDataByChainAndId[chainId][emptyLotId] = emptyLotData;
@@ -267,6 +276,7 @@ class ProviderInfluenceth {
             dryDocks,
             extractors,
             processors,
+            isEmptyLot: false,
         };
         // console.log(`---> [parseBuildingData] metadata:`, metadata); //// TEST
         return metadata;
@@ -282,6 +292,7 @@ class ProviderInfluenceth {
             for (const buildingDataRaw of rawData.hits.hits) {
                 const buildingData = buildingDataRaw._source;
                 const parsedBuildingData = this.parseBuildingData(buildingData);
+                parsedBuildingData._timestamp = Date.now();
                 const lotId = parsedBuildingData.lotId;
                 cache.buildingsDataByChainAndLotId[chainId][lotId] = parsedBuildingData;
                 lotsIdsWithBuildingData.push(lotId);
@@ -289,7 +300,12 @@ class ProviderInfluenceth {
             // Any lots for which NO building data was received are assumed as Empty Lots
             lotsIdsRequested.filter(lotId => !lotsIdsWithBuildingData.includes(lotId))
                 .forEach(emptyLotId => {
-                    cache.buildingsDataByChainAndLotId[chainId][emptyLotId] = null;
+                    const buildingDataForEmptyLot: BuildingDataForEmptyLot = {
+                        _timestamp: Date.now(),
+                        lotId: emptyLotId,
+                        isEmptyLot: true,
+                    };
+                    cache.buildingsDataByChainAndLotId[chainId][emptyLotId] = buildingDataForEmptyLot;
                 });
         } catch (error: any) {
             console.log(`--- [parseBuildingsData] ERROR:`, error); //// TEST
