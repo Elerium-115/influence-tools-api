@@ -1,7 +1,9 @@
 import {
     BuildingData,
     BuildingDataForEmptyLot,
+    BuildingsDataList,
     CrewData,
+    CrewsIdsData,
     LotData,
 } from './types.js';
 import {ChainId} from './starknet-service.js';
@@ -32,12 +34,32 @@ const crewsDataByChainAndId: {[key in ChainId]: {[key: string]: CrewData}} = {
     'SN_SEPOLIA': {},
 };
 
+/**
+ * The list of crews IDs which are controlled by (as opposed to
+ * owned by) each address. The address must be all lowercase.
+ */
+const crewsIdsControlledByChainAndAddress: {[key in ChainId]: {[key: string]: CrewsIdsData}} = {
+    'SN_MAIN': {},
+    'SN_SEPOLIA': {},
+};
+
 const lotsDataByChainAndId: {[key in ChainId]: {[key: string]: LotData}} = {
     'SN_MAIN': {},
     'SN_SEPOLIA': {},
 };
 
 const buildingsDataByChainAndLotId: {[key in ChainId]: {[key: string]: BuildingData|BuildingDataForEmptyLot}} = {
+    'SN_MAIN': {},
+    'SN_SEPOLIA': {},
+};
+
+/**
+ * The buildings data for buildings controlled by [any of the crews
+ * controlled by] each address. The address must be all lowercase.
+ * 
+ * NOTE: excluding empty lots.
+ */
+const buildingsDataControlledByChainAndAddress: {[key in ChainId]: {[key: string]: BuildingsDataList}} = {
     'SN_MAIN': {},
     'SN_SEPOLIA': {},
 };
@@ -74,7 +96,9 @@ export default {
     asteroidsMetadataById,
     asteroidsPlanByAddress,
     buildingsDataByChainAndLotId,
+    buildingsDataControlledByChainAndAddress,
     crewsDataByChainAndId,
+    crewsIdsControlledByChainAndAddress,
     inventoriesDataByLabelAndId,
     isFreshCache,
     lotsDataByChainAndId,

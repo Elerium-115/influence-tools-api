@@ -98,3 +98,20 @@ router.post(
         res.status(responseData.status).json(responseData);
     }
 );
+
+/**
+ * @route   POST /buildings-data-controlled
+ * @desc    Get buildings data for buildings controlled by [any of the crews controlled by] the connected address
+ */
+router.post(
+    '/buildings-data-controlled',
+    logRequestMiddleware,
+    authService.verifyJwtTokenMiddleware, // protected endpoint
+    async (req: Request, res: Response): Promise<void> => {
+        // Use the chain ID and address attached via "verifyJwtTokenMiddleware"
+        const chainId: ChainId = req.chainId as ChainId;
+        const address: string = (req.walletAddress as string).toLowerCase();
+        const responseData = await routingService.handlePostBuildingsDataControlled(chainId, address);
+        res.status(responseData.status).json(responseData);
+    }
+);

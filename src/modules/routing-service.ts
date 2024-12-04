@@ -1,5 +1,8 @@
 import * as starknet from 'starknet';
 import {
+    BuildingData,
+    BuildingsDataList,
+    BuildingsDataListResponse,
     CrewData,
     CrewDataByIdResponse,
     LotData,
@@ -61,10 +64,7 @@ class RoutingService {
                 };
             }
         }
-        /**
-         * At this point, the data for all IDs should be cached,
-         * via "fetchCrewsData" > "parseCrewsData".
-         */
+        // At this point, the data for all IDs should be cached
         const finalData: {[key: string]: CrewData} = {};
         crewsIds.forEach(crewId => {
             finalData[crewId] = cache.crewsDataByChainAndId[chainId][crewId];
@@ -95,14 +95,41 @@ class RoutingService {
                 };
             }
         }
-        /**
-         * At this point, the data for all IDs should be cached,
-         * via "fetchLotsData" > "parseLotsData".
-         */
+        // At this point, the data for all IDs should be cached
         const finalData: {[key: string]: LotData} = {};
         lotsIds.forEach(lotId => {
             finalData[lotId] = cache.lotsDataByChainAndId[chainId][lotId];
         });
+        return {
+            status: 200,
+            success: true,
+            data: finalData,
+        };
+    }
+
+    public async handlePostBuildingsDataControlled(
+        chainId: ChainId,
+        address: string,
+    ): Promise<BuildingsDataListResponse> {
+        // Fetch data only for address without a FRESH cache
+        const cachedData = cache.buildingsDataControlledByChainAndAddress[chainId][address];
+        if (!cache.isFreshCache(cachedData, cache.MS.HOUR)) {
+            const data = await providerInfluenceth.fetchBuildingsDataControlled(chainId, address);
+            if ((data as any).error) {
+                return {
+                    status: 500,
+                    success: false,
+                    error: (data as any).error,
+                };
+            }
+            const buildingsDataList: BuildingsDataList = {
+                buildingsData: data as BuildingData[],
+                _timestamp: Date.now(),
+            };
+            cache.buildingsDataControlledByChainAndAddress[chainId][address] = buildingsDataList;
+        }
+        // At this point, the data for address should be cached
+        const finalData = cache.buildingsDataControlledByChainAndAddress[chainId][address];
         return {
             status: 200,
             success: true,

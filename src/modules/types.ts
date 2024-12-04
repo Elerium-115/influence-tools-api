@@ -1,3 +1,10 @@
+interface StandardResponse {
+    status: number,
+    success: boolean,
+    data?: any, // if "success" TRUE
+    error?: string, // if "success" FALSE
+}
+
 // label = 1
 interface CrewData {
     _raw?: any,
@@ -11,6 +18,11 @@ interface CrewData {
 
 interface CrewDataByIdResponse extends StandardResponse {
     data?: {[key: string]: CrewData},
+}
+
+interface CrewsIdsData {
+    _timestamp?: number,
+    crewsIds: number [],
 }
 
 // label = 4
@@ -46,18 +58,23 @@ interface BuildingDataForEmptyLot {
     isEmptyLot: true,
 }
 
-interface StandardResponse {
-    status: number,
-    success: boolean,
-    data?: any, // if "success" TRUE
-    error?: string, // if "success" FALSE
+interface BuildingsDataList {
+    _timestamp?: number,
+    buildingsData: BuildingData[],
+}
+
+interface BuildingsDataListResponse extends StandardResponse {
+    data?: BuildingsDataList,
 }
 
 export {
     BuildingData,
     BuildingDataForEmptyLot,
+    BuildingsDataList,
+    BuildingsDataListResponse,
     CrewData,
     CrewDataByIdResponse,
+    CrewsIdsData,
     LotData,
     LotDataByIdResponse,
     StandardResponse,

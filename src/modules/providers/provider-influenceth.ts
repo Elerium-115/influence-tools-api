@@ -5,6 +5,7 @@ import {
     BuildingData,
     BuildingDataForEmptyLot,
     CrewData,
+    CrewsIdsData,
     LotData,
 } from '../types.js';
 import cache from '../cache.js';
@@ -28,6 +29,8 @@ import {playerByAddress} from '../../data/player-by-address.js';
 
 const INFLUENCE_API_URL = 'https://api.influenceth.io';
 const INFLUENCE_API_URL_SEPOLIA = 'https://api-prerelease.influenceth.io';
+
+const ELASTIC_SEARCH_SIZE_MAX = 1000;
 
 const ETHEREUM_ADDRESS_LENGTH = 42;
 const SWAY_PER_LOT = 6922;
@@ -129,7 +132,7 @@ class ProviderInfluenceth {
     private parseCrewsData(
         chainId: ChainId,
         rawData: any,
-    ): any {
+    ): {[key: string]: CrewData} {
         const parsedCrewDataById: {[key: string]: CrewData} = {};
         try {
             for (const crewDataRaw of rawData.hits.hits) {
@@ -148,7 +151,7 @@ class ProviderInfluenceth {
     public async fetchCrewsData(
         chainId: ChainId,
         crewsIds: string[],
-    ): Promise<any> {
+    ): Promise<{[key: string]: CrewData}|{error: any}> {
         try {
             const axiosInstance = await this.getAxiosInstance(chainId);
             const query = esb.boolQuery()
@@ -163,6 +166,50 @@ class ProviderInfluenceth {
             return this.parseCrewsData(chainId, rawData);
         } catch (error: any) {
             console.log(`--- [fetchCrewsData] ERROR:`, error); //// TEST
+            return {error};
+        }
+    }
+
+    private parseCrewsIds(
+        chainId: ChainId,
+        address: string,
+        rawData: any,
+    ): CrewsIdsData {
+        const parsedCrewsId: number[] = [];
+        try {
+            for (const crewDataRaw of rawData.hits.hits) {
+                const crewData = crewDataRaw._source;
+                parsedCrewsId.push(crewData.id as number);
+            }
+        } catch (error: any) {
+            console.log(`--- [parseCrewsIds] ERROR:`, error); //// TEST
+        }
+        const crewsIdsData: CrewsIdsData = {
+            crewsIds: parsedCrewsId,
+            _timestamp: Date.now(),
+        };
+        cache.crewsIdsControlledByChainAndAddress[chainId][address] = crewsIdsData;
+        return crewsIdsData;
+    }
+
+    public async fetchCrewsIdsControlled(
+        chainId: ChainId,
+        address: string,
+    ): Promise<CrewsIdsData|{error: any}> {
+        try {
+            const axiosInstance = await this.getAxiosInstance(chainId);
+            const query = esb.boolQuery()
+                .filter(
+                    esb.termQuery('Crew.delegatedTo', address), // search by controller address
+                );
+            const requestBody = esb.requestBodySearch()
+                .query(query)
+                .size(ELASTIC_SEARCH_SIZE_MAX);
+            const response = await axiosInstance.post('/_search/crew', requestBody.toJSON());
+            const rawData = response.data;
+            return this.parseCrewsIds(chainId, address, rawData);
+        } catch (error: any) {
+            console.log(`--- [fetchCrewsIdsControlled] ERROR:`, error); //// TEST
             return {error};
         }
     }
@@ -189,7 +236,7 @@ class ProviderInfluenceth {
         chainId: ChainId,
         rawData: any,
         lotsIdsRequested: string[],
-    ): any {
+    ): {[key: string]: LotData} {
         const parsedLotsDataById: {[key: string]: LotData} = {};
         try {
             const lotsIdsWithLotData: string[] = [];
@@ -227,7 +274,7 @@ class ProviderInfluenceth {
     public async fetchLotsData(
         chainId: ChainId,
         lotsIds: string[],
-    ): Promise<any> {
+    ): Promise<{[key: string]: LotData}|{error: any}> {
         /**
          * FIRST: fetch + cache the buildings data for "lotsIds" (if any).
          * 
@@ -291,8 +338,9 @@ class ProviderInfluenceth {
     private parseBuildingsData(
         chainId: ChainId,
         rawData: any,
-        lotsIdsRequested: string[],
-    ): void {
+        lotsIdsRequested: string[] = [],
+    ): BuildingData[] {
+        const buildingsData: BuildingData[] = [];
         try {
             const lotsIdsWithBuildingData: string[] = [];
             for (const buildingDataRaw of rawData.hits.hits) {
@@ -302,6 +350,7 @@ class ProviderInfluenceth {
                 const lotId = parsedBuildingData.lotId;
                 cache.buildingsDataByChainAndLotId[chainId][lotId] = parsedBuildingData;
                 lotsIdsWithBuildingData.push(lotId);
+                buildingsData.push(parsedBuildingData);
             }
             // Any lots for which NO building data was received are assumed as Empty Lots
             lotsIdsRequested.filter(lotId => !lotsIdsWithBuildingData.includes(lotId))
@@ -316,12 +365,17 @@ class ProviderInfluenceth {
         } catch (error: any) {
             console.log(`--- [parseBuildingsData] ERROR:`, error); //// TEST
         }
+        /**
+         * NOT setting "cache.buildingsDataControlledByChainAndAddress" here,
+         * b/c this parser is called from functionally-different contexts.
+         */
+        return buildingsData;
     }
 
     public async fetchBuildingsDataByLotsIds(
         chainId: ChainId,
         lotsIds: string[],
-    ): Promise<any> {
+    ): Promise<BuildingData[]|{error: any}> {
         try {
             const axiosInstance = await this.getAxiosInstance(chainId);
             const query = esb.boolQuery()
@@ -339,6 +393,54 @@ class ProviderInfluenceth {
             return this.parseBuildingsData(chainId, rawData, lotsIds);
         } catch (error: any) {
             console.log(`--- [fetchBuildingsDataByLotsIds] ERROR:`, error); //// TEST
+            return {error};
+        }
+    }
+
+    public async fetchBuildingsDataControlled(
+        chainId: ChainId,
+        address: string,
+    ): Promise<BuildingData[]|{error: any}> {
+        /**
+         * FIRST: fetch + cache the crews IDs controlled by address (if any).
+         * 
+         * NOTE: Fetch data only for address without a FRESH cache.
+         */
+        const cachedData = cache.crewsIdsControlledByChainAndAddress[chainId][address];
+        if (!cache.isFreshCache(cachedData, cache.MS.HOUR)) {
+            try {
+                await this.fetchCrewsIdsControlled(chainId, address);
+            } catch (error: any) {
+                console.log(`--- [fetchBuildingsDataControlled] crews ERROR:`, error); //// TEST
+                return {error};
+            }
+        }
+        // At this point, the list of controlled crews IDs should be cached
+        const crewsIdsControlled = cache.crewsIdsControlledByChainAndAddress[chainId][address]?.crewsIds || [];
+        if (!crewsIdsControlled || !crewsIdsControlled.length) {
+            return [];
+        }
+        // THEN: fetch the buildings data for buildings controlled by [crews controlled by] address
+        try {
+            const axiosInstance = await this.getAxiosInstance(chainId);
+            const query = esb.boolQuery()
+                .mustNot(
+                    esb.termQuery('Building.status', 0), // exclude "unplanned" buildings
+                )
+                .must(
+                    esb.termQuery('Control.controller.label', 1) // controller must be a crew
+                )
+                .filter(
+                    esb.termsQuery('Control.controller.id', crewsIdsControlled), // search by list of crews IDs
+                );
+            const requestBody = esb.requestBodySearch()
+                .query(query)
+                .size(ELASTIC_SEARCH_SIZE_MAX);
+            const response = await axiosInstance.post('/_search/building', requestBody.toJSON());
+            const rawData = response.data;
+            return this.parseBuildingsData(chainId, rawData);
+        } catch (error: any) {
+            console.log(`--- [fetchBuildingsDataControlled] buildings ERROR:`, error); //// TEST
             return {error};
         }
     }
