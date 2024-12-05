@@ -7,6 +7,7 @@ import {
     CrewData,
     CrewsIdsData,
     LotData,
+    ShipData,
 } from '../types.js';
 import cache from '../cache.js';
 import utils from '../utils.js';
@@ -445,6 +446,62 @@ class ProviderInfluenceth {
         }
     }
     // Buildings -- END
+
+    // Ships -- START
+    private parseShipData(rawData: any): ShipData {
+        // console.log(`--- [parseShipData] rawData:`, rawData); //// TEST
+        const shipId: string = rawData.id.toString();
+        const shipType: number = rawData.Ship.shipType;
+        const metadata: ShipData = {
+            // _raw: rawData, //// TEST
+            shipId,
+            shipType,
+        };
+        // console.log(`---> [parseShipData] metadata:`, metadata); //// TEST
+        return metadata;
+    }
+
+    private parseShipsData(
+        chainId: ChainId,
+        rawData: any,
+    ): {[key: string]: ShipData} {
+        const parsedShipDataById: {[key: string]: ShipData} = {};
+        try {
+            for (const shipDataRaw of rawData.hits.hits) {
+                const shipData = shipDataRaw._source;
+                const parsedShipData = this.parseShipData(shipData);
+                parsedShipData._timestamp = Date.now();
+                parsedShipDataById[shipData.id] = parsedShipData;
+                cache.shipsDataByChainAndId[chainId][shipData.id] = parsedShipData;
+            }
+        } catch (error: any) {
+            console.log(`--- [parseShipsData] ERROR:`, error); //// TEST
+        }
+        return parsedShipDataById;
+    }
+
+    public async fetchShipsData(
+        chainId: ChainId,
+        shipsIds: string[],
+    ): Promise<{[key: string]: ShipData}|{error: any}> {
+        try {
+            const axiosInstance = await this.getAxiosInstance(chainId);
+            const query = esb.boolQuery()
+                .filter(
+                    esb.termsQuery('id', shipsIds), // search by list of ship IDs
+                );
+            const requestBody = esb.requestBodySearch()
+                .query(query)
+                .size(shipsIds.length);
+            const response = await axiosInstance.post('/_search/ship', requestBody.toJSON());
+            const rawData = response.data;
+            return this.parseShipsData(chainId, rawData);
+        } catch (error: any) {
+            console.log(`--- [fetchShipsData] ERROR:`, error); //// TEST
+            return {error};
+        }
+    }
+    // Ships -- END
 }
 
 const providerInfluenceth: ProviderInfluenceth = ProviderInfluenceth.getInstance(); // singleton

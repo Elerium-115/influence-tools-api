@@ -115,3 +115,18 @@ router.post(
         res.status(responseData.status).json(responseData);
     }
 );
+
+/**
+ * @route   POST /ships-data
+ * @desc    Get ships data for list of ship IDs
+ */
+router.post(
+    '/ships-data',
+    logRequestMiddleware,
+    async (req: Request, res: Response): Promise<void> => {
+        const chainId: ChainId = req.body.chainId;
+        const shipsIds: string[] = req.body.shipsIds?.map((id: number) => id.toString());
+        const responseData = await routingService.handlePostShipsData(chainId, shipsIds);
+        res.status(responseData.status).json(responseData);
+    }
+);

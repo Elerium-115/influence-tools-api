@@ -7,6 +7,8 @@ import {
     CrewDataByIdResponse,
     LotData,
     LotDataByIdResponse,
+    ShipData,
+    ShipDataByIdResponse,
 } from './types.js';
 import cache from './cache.js';
 import {
@@ -130,6 +132,37 @@ class RoutingService {
         }
         // At this point, the data for address should be cached
         const finalData = cache.buildingsDataControlledByChainAndAddress[chainId][address];
+        return {
+            status: 200,
+            success: true,
+            data: finalData,
+        };
+    }
+
+    public async handlePostShipsData(
+        chainId: ChainId,
+        shipsIds: string[],
+    ): Promise<ShipDataByIdResponse> {
+        // Fetch data only for IDs without a FRESH cache
+        const cachedData = cache.shipsDataByChainAndId[chainId];
+        const cachedIds = Object.keys(cachedData)
+            .filter(shipId => cache.isFreshCache(cachedData[shipId], cache.MS.HOUR));
+        const nonCachedIds = shipsIds.filter(id => !cachedIds.includes(id));
+        if (nonCachedIds.length) {
+            const data = await providerInfluenceth.fetchShipsData(chainId, nonCachedIds);
+            if (data.error) {
+                return {
+                    status: 500,
+                    success: false,
+                    error: data.error,
+                };
+            }
+        }
+        // At this point, the data for all IDs should be cached
+        const finalData: {[key: string]: ShipData} = {};
+        shipsIds.forEach(shipId => {
+            finalData[shipId] = cache.shipsDataByChainAndId[chainId][shipId];
+        });
         return {
             status: 200,
             success: true,

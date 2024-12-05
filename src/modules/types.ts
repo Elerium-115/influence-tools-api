@@ -67,6 +67,18 @@ interface BuildingsDataListResponse extends StandardResponse {
     data?: BuildingsDataList,
 }
 
+// label = 6
+interface ShipData {
+    _raw?: any,
+    _timestamp?: number,
+    shipId: string,
+    shipType: number,
+}
+
+interface ShipDataByIdResponse extends StandardResponse {
+    data?: {[key: string]: ShipData},
+}
+
 export {
     BuildingData,
     BuildingDataForEmptyLot,
@@ -77,5 +89,7 @@ export {
     CrewsIdsData,
     LotData,
     LotDataByIdResponse,
+    ShipData,
+    ShipDataByIdResponse,
     StandardResponse,
 }

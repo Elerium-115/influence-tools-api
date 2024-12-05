@@ -5,6 +5,7 @@ import {
     CrewData,
     CrewsIdsData,
     LotData,
+    ShipData,
 } from './types.js';
 import {ChainId} from './starknet-service.js';
 
@@ -21,13 +22,6 @@ MS.YEAR = 365 * MS.DAY;
 export type AccessTokensKey = 'influenceth'|'influenceth-prerelease';
 
 const accessTokens: {[key in AccessTokensKey]?: string|null} = {};
-
-const asteroidsMetadataById: {[key: string]: any} = {};
-
-/**
- * NOTE: each key is a lowercase address
- */
-const asteroidsPlanByAddress: {[key: string]: any} = {};
 
 const crewsDataByChainAndId: {[key in ChainId]: {[key: string]: CrewData}} = {
     'SN_MAIN': {},
@@ -64,24 +58,10 @@ const buildingsDataControlledByChainAndAddress: {[key in ChainId]: {[key: string
     'SN_SEPOLIA': {},
 };
 
-const shipsDataById: {[key: string]: any} = {};
-
-const inventoriesDataByLabelAndId: {[key: string]: any} = {
-    5: {}, // buildings
-    6: {}, // ships
+const shipsDataByChainAndId: {[key in ChainId]: {[key: string]: ShipData}} = {
+    'SN_MAIN': {},
+    'SN_SEPOLIA': {},
 };
-
-interface OwnedAsteroidsIdsByAddress {
-    asteroidsIds: number[],
-    date: number, // timestamp
-}
-
-/**
- * NOTE: each key is a lowercase address
- */
-const ownedAsteroidsIdsByAddress: {[key: string]: OwnedAsteroidsIdsByAddress} = {};
-
-const productionPlanDataById: {[key: string]: any} = {};
 
 function isFreshCache(data: any, cacheExpiresInMilliseconds: number): boolean {
     if (!data || !data._timestamp) {
@@ -93,21 +73,11 @@ function isFreshCache(data: any, cacheExpiresInMilliseconds: number): boolean {
 export default {
     MS,
     accessTokens,
-    asteroidsMetadataById,
-    asteroidsPlanByAddress,
     buildingsDataByChainAndLotId,
     buildingsDataControlledByChainAndAddress,
     crewsDataByChainAndId,
     crewsIdsControlledByChainAndAddress,
-    inventoriesDataByLabelAndId,
     isFreshCache,
     lotsDataByChainAndId,
-    ownedAsteroidsIdsByAddress,
-    productionPlanDataById,
-    shipsDataById,
+    shipsDataByChainAndId,
 }
-
-//// TO DO: expire "asteroidsMetadataById" for a given asteroid if older than e.g. 1 day (in case the name changes)
-//// -- similar to how "ownedAsteroidsIdsByAddress" is expired for a given address
-//// -- do the same for ALL cached consts?
-//// ____
