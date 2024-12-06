@@ -336,11 +336,11 @@ class ProviderInfluenceth {
         return metadata;
     }
 
-    private parseBuildingsData(
+    private async parseBuildingsData(
         chainId: ChainId,
         rawData: any,
         lotsIdsRequested: string[] = [],
-    ): BuildingData[] {
+    ): Promise<BuildingData[]> {
         const buildingsData: BuildingData[] = [];
         try {
             const lotsIdsWithBuildingData: string[] = [];
@@ -353,6 +353,7 @@ class ProviderInfluenceth {
                 lotsIdsWithBuildingData.push(lotId);
                 buildingsData.push(parsedBuildingData);
             }
+            await this.injectShipTypesIntoBuildingsData(chainId, buildingsData);
             // Any lots for which NO building data was received are assumed as Empty Lots
             lotsIdsRequested.filter(lotId => !lotsIdsWithBuildingData.includes(lotId))
                 .forEach(emptyLotId => {
@@ -391,7 +392,7 @@ class ProviderInfluenceth {
                 .size(lotsIds.length);
             const response = await axiosInstance.post('/_search/building', requestBody.toJSON());
             const rawData = response.data;
-            return this.parseBuildingsData(chainId, rawData, lotsIds);
+            return await this.parseBuildingsData(chainId, rawData, lotsIds);
         } catch (error: any) {
             console.log(`--- [fetchBuildingsDataByLotsIds] ERROR:`, error); //// TEST
             return {error};
@@ -439,7 +440,7 @@ class ProviderInfluenceth {
                 .size(ELASTIC_SEARCH_SIZE_MAX);
             const response = await axiosInstance.post('/_search/building', requestBody.toJSON());
             const rawData = response.data;
-            return this.parseBuildingsData(chainId, rawData);
+            return await this.parseBuildingsData(chainId, rawData);
         } catch (error: any) {
             console.log(`--- [fetchBuildingsDataControlled] buildings ERROR:`, error); //// TEST
             return {error};
@@ -500,6 +501,40 @@ class ProviderInfluenceth {
             console.log(`--- [fetchShipsData] ERROR:`, error); //// TEST
             return {error};
         }
+    }
+
+    /**
+     * Fetch and inject "shipType" into all "dryDocks" with an active ship integration
+     */
+    private async injectShipTypesIntoBuildingsData(
+        chainId: ChainId,
+        buildingsData: BuildingData[],
+    ): Promise<void> {
+        const shipsIds: number[] = buildingsData
+            .filter(buildingData => buildingData.dryDocks?.length && buildingData.dryDocks[0].outputShip)
+            .map(buildingData => buildingData.dryDocks[0].outputShip.id);
+        // Fetch data only for IDs without a FRESH cache
+        const cachedData = cache.shipsDataByChainAndId[chainId];
+        const cachedIds = Object.keys(cachedData)
+            .filter(shipId => cache.isFreshCache(cachedData[shipId], cache.MS.HOUR));
+        const nonCachedIds = shipsIds.map(id => id.toString())
+            .filter(idString => !cachedIds.includes(idString));
+        if (nonCachedIds.length) {
+            const data = await this.fetchShipsData(chainId, nonCachedIds);
+            if (data.error) {
+                console.log(`--- [injectIntegratingShipTypesIntoBuildingsData] ERROR:`, data.error); //// TEST
+                return;
+            }
+        }
+        // At this point, the data for all IDs should be cached
+        shipsIds.forEach(shipId => {
+            const shipType = cache.shipsDataByChainAndId[chainId][shipId].shipType;
+            const buildingData = buildingsData
+                .find(buildingData => buildingData.dryDocks?.length && buildingData.dryDocks[0].outputShip && buildingData.dryDocks[0].outputShip.id === shipId);
+            if (buildingData) {
+                buildingData.dryDocks[0].outputShip.type = shipType;
+            }
+        });
     }
     // Ships -- END
 }
