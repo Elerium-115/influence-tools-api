@@ -314,8 +314,8 @@ class ProviderInfluenceth {
         // console.log(`--- [parseBuildingData] rawData:`, rawData); //// TEST
         const buildingId: string = rawData.id.toString();
         const buildingDetails: any = rawData.Building;
-        const buildingName: string|null = rawData.Name?.name || null;
-        const crewName: string|null = rawData.meta.crew?.name || null;
+        const buildingName: string = rawData.Name?.name || '';
+        const crewName: string = rawData.meta.crew?.name || '';
         const lotId: string = rawData.Location.location.id.toString();
         const dryDocks: any[] = rawData.DryDocks;
         const extractors: any[] = rawData.Extractors;
